@@ -10,6 +10,6 @@
 
 - 采用Spring的jdbcTemplate，对查询的复杂sql比较方便。
 
-- 有个查询Book表，做为实例。
+- 有个查询Book表，做为示例。
 
   
