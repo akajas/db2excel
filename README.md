@@ -11,4 +11,6 @@
 
 - 采用Spring的jdbcTemplate，对查询的复杂sql比较方便。
 
+- 对数值型字符也做了处理，在Excel里显示的也是数值型。
+
 - 有个查询Book表，做为示例。

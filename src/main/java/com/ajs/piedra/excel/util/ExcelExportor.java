@@ -23,21 +23,21 @@ import java.util.*;
  * @Creator：linwb 2014-12-19
  */
 public class ExcelExportor<T> {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(ExcelExportor.class);
-    
+
     /** 导出excel过程中,出错的数据行*/
     private List<T> errorDatas = new ArrayList<T>();
     /** 表头的配置信息*/
     private Map<String,ExcelHeader> headerMap = new HashMap<String,ExcelHeader>();
-    
-/* ****************************************************************************
- *          个性化定制要导出的数据样式
- * ****************************************************************************/
-    
+
+    /* ****************************************************************************
+     *          个性化定制要导出的数据样式
+     * ****************************************************************************/
+
     /** 每一个sheet表格默认可以导出多少行*/
     private int maxSheetRows = 60000;
-    
+
     /** 导出的列的头部 左边框*/
     private Short headerBorderLeft = HSSFCellStyle.BORDER_THIN;
     /** 导出的列的头部 右边框*/
@@ -52,14 +52,14 @@ public class ExcelExportor<T> {
     private Short headerCellVehicleAlign = HSSFCellStyle.VERTICAL_CENTER;
     /** 导出的列的头部 背景颜色*/
     private Short headerCellBackgroundColor = HSSFColor.WHITE.index;
-    
+
     /** 表头字体颜色*/
     private Short headerFontColor = HSSFColor.VIOLET.index;
     /** 表头字体的高度，即大小*/
     private Short headerFontHeight = 12;
     /** 表头字体的粗细*/
     private Short headerFontWeight = HSSFFont.BOLDWEIGHT_BOLD;
-    
+
     /** 单元格的字体颜色*/
     private Short cellFontColor = HSSFColor.BLACK.index;
     /** 导出的内容的左边框*/
@@ -76,20 +76,20 @@ public class ExcelExportor<T> {
     private Short contCellVehicleAlign = HSSFCellStyle.VERTICAL_CENTER;
     /** 导出的内容的背景颜色*/
     private Short contCellBackgroundColor = HSSFColor.WHITE.index;
-    
-    
+
+
     public ExcelExportor(){
     }
-    
-    
+
+
     /**
      * 通用的excel导出方法<br>
      * 注：<br>
      * 1. 当前版本不支持 boolean类型,byte[]类型  这些类型的请自己转成String或者int类型然后用 @ExcelExport 标记为要导出的字段<br>
      * 2. 每次要导出多少行,由开发者自行设定,此处不做限定; 但是每5000条数据的时候,将创建多个sheet表格<br>
      * 3. 如果要获取导出失败的数据,通过getErrorDatas()来获取<br>
-     * 
-     * @param headers   表格属性列名数组
+     *
+     //     * @param headers   表格属性列名数组
      * @param dataset   需要显示的数据集合,集合里面的元素必须是JavaBean, 然后对于要导出的列 用 @ExcelExport annotation标记; 具体注解的使用,参照注解类的说明
      * @param out       与输出设备关联的流对象，可以将EXCEL文档导出到本地文件或者网络中
      *
@@ -112,28 +112,28 @@ public class ExcelExportor<T> {
         if(StringUtils.isBlank(title)){
             title = "通用excel导出工具";
         }
-        
+
         //每一次要开始导出操作,清空errorDatas
         errorDatas.clear();
-        
+
         //当前要导出的数据对象类型
         T beanType = (T) dataset.get(0);
-        
+
         //1. 声明一个工作薄
         HSSFWorkbook workbook = new HSSFWorkbook();
-        
+
         //2. 生成一个表格
         int sheets = 1;
         int dataSize = dataset.size();
         if(dataSize>maxSheetRows){
             sheets = (dataSize%maxSheetRows==0)?(dataSize/maxSheetRows):(dataSize/maxSheetRows+1);
         }
-        
+
         //如果数据量太多生成多个表格
         int minIndex = 0,maxIndex=0;
         for(int i=0; i<sheets; i++){
             HSSFSheet sheet = workbook.createSheet(title+(i==0?"":""+i));
-            
+
             //3. 生成表头
             int maxRows = generateHeader(workbook, sheet, beanType);
             //4. 将数据集的每一个数据项写到excel的每一行
@@ -143,11 +143,11 @@ public class ExcelExportor<T> {
             } else {
                 maxIndex = dataSize;
             }
-            
+
             List<T> dataRows = dataset.subList(minIndex, maxIndex);
             exportRowDatas(dataRows, workbook, sheet, maxRows);
         }
-        
+
         //5. 将表格输出到指定的输出流
         try {
             workbook.write(out);
@@ -157,7 +157,7 @@ public class ExcelExportor<T> {
             map.put(Constants.ERROR_CODE, errorMsg);
             return map;
         }
-       
+
         map.put(Constants.SUCCESS_CODE, "导出成功.");
         return map;
     }
@@ -236,7 +236,7 @@ public class ExcelExportor<T> {
         contFont.setColor(cellFontColor);
         //生成文本单元格内容的样式
         HSSFCellStyle cellStyle = generateContStyle(workbook);
-        
+//        HSSFCellStyle contextstyle =workbook.createCellStyle();
         HSSFRow row;
         //遍历集合数据，产生数据行
         Iterator<T> it = dataset.iterator();
@@ -245,7 +245,7 @@ public class ExcelExportor<T> {
         while (it.hasNext()) {
             row = sheet.createRow(index++);
             T rowData = (T) it.next();
-            
+
             isErrorRow = false;
             //根据JavaBean属性的先后顺序,动态调用getXxx()方法得到属性值
             Field[] fields = rowData.getClass().getDeclaredFields();
@@ -254,10 +254,10 @@ public class ExcelExportor<T> {
                 if(!isExcelExport(field.getAnnotations())){
                     continue ;
                 }
-                
+
                 HSSFCell cell = row.createCell(colIndex++);
                 cell.setCellStyle(cellStyle);
-                
+
                 String fieldName = field.getName();
                 String getMethodName = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
                 try {
@@ -270,23 +270,54 @@ public class ExcelExportor<T> {
                     }
                     //类型转换处理
                     String textValue = null;
+                    Boolean isNum = false;//data是否为数值型
+                    Boolean isInteger=false;//data是否为整数
+                    Boolean isPercent=false;//data是否为百分数
+
+
+
+                    if (value != null || "".equals(value)) {
+                        //判断data是否为数值型
+                        isNum = value.toString().matches("^(-?\\d+)(\\.\\d+)?$");
+                        //判断data是否为整数（小数部分是否为0）
+                        isInteger=value.toString().matches("^[-\\+]?[\\d]*$");
+                        //判断data是否为百分数（是否包含“%”）
+                        isPercent=value.toString().contains("%");
+                    }
                     if (value instanceof Date) {
                         Date date = (Date) value;
-                        
+
                         ExcelHeader excelHeader = headerMap.get(""+(colIndex-1));//因为colIndex第几列已经增加过1了，所以此处减1获取正确的列
                         SimpleDateFormat sdf = new SimpleDateFormat(excelHeader.getDatePattern());
                         textValue = sdf.format(date);
-                    } else {
+                    }
+
+                    if(isNum && !isPercent){
+                        HSSFDataFormat df = workbook.createDataFormat(); // 此处设置数据格式
+                        if (isInteger) {
+                            cellStyle.setDataFormat(df.getBuiltinFormat("#,#0"));//数据格式只显示整数
+
+                        }else{
+                            cellStyle.setDataFormat(df.getBuiltinFormat("#,##0.0000"));//保留两位小数点
+                        }
+                        // 设置单元格格式
+                        cell.setCellStyle(cellStyle);
+                        // 设置单元格内容为double类型
+                        cell.setCellValue(Double.parseDouble(value.toString()));
+                    }
+                    else {
                         //其它数据类型都当作字符串简单处理
                         textValue = value.toString();
-                        
+
+                        HSSFRichTextString richText = new HSSFRichTextString(textValue);
+                        richText.applyFont(contFont);
+                        cell.setCellValue(richText);
+
                         //指定部分字体的颜色?
-                        
+
                     }
-                    HSSFRichTextString richText = new HSSFRichTextString(textValue);
-                    richText.applyFont(contFont);
-                    cell.setCellValue(richText);
-                    
+
+
                 } catch (Exception e) {
                     e.printStackTrace();
                     logger.error("写入excel表格时出错", e);
@@ -301,7 +332,7 @@ public class ExcelExportor<T> {
             }
         }
     }
-    
+
     /**
      * @Description: 生成表头数据  并返回表头共有多少行
      * @param workbook
@@ -330,39 +361,39 @@ public class ExcelExportor<T> {
             if(excelAnnotation == null){
                 continue ;
             }
-            
+
             String headerStr = excelAnnotation.header();
             String rowspanStr = excelAnnotation.rowspan();
             String colspanStr = excelAnnotation.colspan();
             int columnWidth = excelAnnotation.colWidth();
             String datePattern = excelAnnotation.datePattern();
-            
+
             String[] headerArr = headerStr.split(",");
             String[] rowspanArr = rowspanStr.split(",");
             String[] colspanArr = colspanStr.split(",");
-            
+
             try {
-               if(headerArr.length!=rowspanArr.length || headerArr.length!=colspanArr.length){
-                   throw new Exception("表头,列数,行数 配置不一致, 检查是否用英文的逗号分隔好?");
-               }
-               int curMaxRow = 0;
-               int curRowspan = 1, curColspan = 1;
-               for(int i=0,len=rowspanArr.length; i<len; i++){
-                   //验证数值的合法性
-                   curRowspan = Integer.parseInt(rowspanArr[i]);
-                   curColspan = Integer.parseInt(colspanArr[i]);
-                   if(curRowspan<=0 || curColspan<=0){
-                       throw new Exception("占据的列数或者行数不能小于等于0. 请检查(colspan and rowspan should be greater than 0).");
-                   }
-                   if(i==0 && curColspan>1){
-                       throw new Exception("最接近数据的列永远都只能是1(即你用逗号分割的那串colspan,第一个值必须是1; 如: '1,2,3'), 请确认您的表格设计是否合理");
-                   }
-                   curMaxRow += curRowspan;
-               }
-               //验证表头的行数,列数是否一致
-               if(maxRow<curMaxRow){
-                   maxRow = curMaxRow;
-               }
+                if(headerArr.length!=rowspanArr.length || headerArr.length!=colspanArr.length){
+                    throw new Exception("表头,列数,行数 配置不一致, 检查是否用英文的逗号分隔好?");
+                }
+                int curMaxRow = 0;
+                int curRowspan = 1, curColspan = 1;
+                for(int i=0,len=rowspanArr.length; i<len; i++){
+                    //验证数值的合法性
+                    curRowspan = Integer.parseInt(rowspanArr[i]);
+                    curColspan = Integer.parseInt(colspanArr[i]);
+                    if(curRowspan<=0 || curColspan<=0){
+                        throw new Exception("占据的列数或者行数不能小于等于0. 请检查(colspan and rowspan should be greater than 0).");
+                    }
+                    if(i==0 && curColspan>1){
+                        throw new Exception("最接近数据的列永远都只能是1(即你用逗号分割的那串colspan,第一个值必须是1; 如: '1,2,3'), 请确认您的表格设计是否合理");
+                    }
+                    curMaxRow += curRowspan;
+                }
+                //验证表头的行数,列数是否一致
+                if(maxRow<curMaxRow){
+                    maxRow = curMaxRow;
+                }
             } catch(Exception e){
                 throw new RuntimeException(e.getMessage() + "\n配置出错,请原谅我这么简单的提示.(检查建议: colspan,rowspan,header 检查用逗号分割后是否长度一致? col,row是否是数值?)");
             }
@@ -370,7 +401,7 @@ public class ExcelExportor<T> {
             columnWidth = (columnWidth<=0 ? 15 : columnWidth);
             headerMap.put(""+headerColIndex++, new ExcelHeader(headerArr,rowspanArr,colspanArr,columnWidth,datePattern));
         }
-        
+
         headerRows = new HSSFRow[maxRow];
         for(int i=0; i<maxRow; i++){
             headerRows[i] = sheet.createRow(i);
@@ -378,16 +409,16 @@ public class ExcelExportor<T> {
         if(maxRow==0){
             throw new RuntimeException("表头行创建失败,请检查一下annotation的配置.");
         }
-        
+
         for(int headerIndex=0,len=headerMap.size(); headerIndex<len; headerIndex++){
             ExcelHeader header = headerMap.get(""+headerIndex);
             String[] headerArr = header.getHeaderArr();
             String[] rowspanArr = header.getRowspanArr();
             String[] colspanArr = header.getColspanArr();
-            
+
             //为表格的每一列设置列宽
             sheet.setColumnWidth(headerIndex, header.getColumnWidth()*256);
-            
+
             //绘制表头
             int currentRow = maxRow-1 ;
             int minRowIndex = 0;
@@ -395,7 +426,7 @@ public class ExcelExportor<T> {
                 if(rowIndex>0){
                     currentRow -= Integer.parseInt(rowspanArr[rowIndex-1]);//扣掉上一次的行跨度
                 }
-                
+
                 if(Integer.parseInt(rowspanArr[rowIndex])>1 || Integer.parseInt(colspanArr[rowIndex])>1){
                     minRowIndex = currentRow-(Integer.parseInt(rowspanArr[rowIndex])-1);
                     sheet.addMergedRegion(new CellRangeAddress(minRowIndex,currentRow,
@@ -403,18 +434,18 @@ public class ExcelExportor<T> {
                 } else {
                     minRowIndex = currentRow;
                 }
-                
+
                 //直接创建一个单元格.
                 HSSFCell cell = headerRows[minRowIndex].createCell(headerIndex);
                 cell.setCellStyle(headerStyle);
-                
+
                 //TODO headerArr[rowIndex] 变更为存放KEY 然后根据KEY 到数据库查询相应地区的表头的名称
-                
+
                 HSSFRichTextString richText = new HSSFRichTextString(headerArr[rowIndex]);
                 cell.setCellValue(richText);
             }
         }
-        
+
         return maxRow;
     }
 
@@ -432,24 +463,24 @@ public class ExcelExportor<T> {
         // 设置这些样式
         headerStyle.setFillForegroundColor(headerCellBackgroundColor);
         headerStyle.setFillPattern(HSSFCellStyle.SOLID_FOREGROUND);
-        
+
         headerStyle.setBorderBottom(headerBorderBottom);
         headerStyle.setBorderLeft(headerBorderLeft);
         headerStyle.setBorderRight(headerBorderRight);
         headerStyle.setBorderTop(headerBorderTop);
-        
+
         headerStyle.setAlignment(headerCellTextAlign);
         headerStyle.setVerticalAlignment(headerCellVehicleAlign);
-        
+
         // 生成字体
         HSSFFont font = workbook.createFont();
         font.setColor(headerFontColor);
         font.setFontHeightInPoints(headerFontHeight);
         font.setBoldweight(headerFontWeight);
-        
+
         // 把字体应用到当前的样式
         headerStyle.setFont(font);
-        
+
         return headerStyle;
     }
 
@@ -465,24 +496,24 @@ public class ExcelExportor<T> {
         HSSFCellStyle cellStyle = workbook.createCellStyle();
         cellStyle.setFillForegroundColor(contCellBackgroundColor);
         cellStyle.setFillPattern(HSSFCellStyle.SOLID_FOREGROUND);
-        
+
         cellStyle.setBorderBottom(contBorderBottom);
         cellStyle.setBorderLeft(contBorderLeft);
         cellStyle.setBorderRight(contBorderRight);
         cellStyle.setBorderTop(contBorderTop);
         cellStyle.setAlignment(contCellTextAlign);
-        
+
         cellStyle.setVerticalAlignment(contCellVehicleAlign);
         // 生成字体
         HSSFFont font = workbook.createFont();
         font.setBoldweight(HSSFFont.BOLDWEIGHT_NORMAL);
         // 把字体应用到当前的样式
         cellStyle.setFont(font);
-        
+
         return cellStyle;
     }
 
-    
+
     /**
      * @Description: 判断是否包含 ExcelExport的annotation注解
      * @param annotations
@@ -499,16 +530,16 @@ public class ExcelExportor<T> {
         }
         return false;
     }
-    
-    
-/* ****************************************************************************
- *          getters and setters...
- * ****************************************************************************/
-   
+
+
+    /* ****************************************************************************
+     *          getters and setters...
+     * ****************************************************************************/
+
     public Short getHeaderBorderLeft() {
         return headerBorderLeft;
     }
-    
+
     public void setHeaderBorderLeft(Short headerBorderLeft) {
         this.headerBorderLeft = headerBorderLeft;
     }
@@ -604,7 +635,7 @@ public class ExcelExportor<T> {
     public List<T> getErrorDatas() {
         return errorDatas;
     }
-    
+
     public void setErrorDatas(List<T> errorDatas) {
         this.errorDatas = errorDatas;
     }
@@ -652,12 +683,12 @@ public class ExcelExportor<T> {
     public void setCellFontColor(Short cellFontColor) {
         this.cellFontColor = cellFontColor;
     }
-    
+
     public void setMaxSheetRows(int maxSheetRows) {
         if(maxSheetRows<=0){
             throw new RuntimeException("最大的表格行数不能小于0");
         }
-        
+
         this.maxSheetRows = maxSheetRows;
     }
 }
